@@ -1,4 +1,4 @@
-import { useState, useCallback, useId, useMemo } from 'react';
+import { useState, useCallback, useId, useMemo, useEffect, useRef } from 'react';
 import { ModalContext } from './context';
 import { ModalOverlay } from './ModalOverlay';
 import { ModalPanel } from './ModalPanel';
@@ -25,6 +25,7 @@ export function Modal({
   afterOpenChange,
   titleId: titleIdProp,
   bodyId: bodyIdProp,
+  duration = 200,
   className,
   style,
 }: ModalProps) {
@@ -32,30 +33,60 @@ export function Modal({
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : uncontrolledOpen;
 
+  const [leaving, setLeaving] = useState(false);
+  const [visible, setVisible] = useState(open);
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const titleId = titleIdProp ?? useId();
   const bodyId = bodyIdProp ?? useId();
 
-  const close = useCallback(() => {
+  useEffect(() => {
+    if (open) {
+      setLeaving(false);
+      setVisible(true);
+    }
+  }, [open]);
+
+  // When controlled and parent sets open to false, notify so confirm promise can resolve
+  useEffect(() => {
+    if (isControlled && !open) {
+      afterOpenChange?.(false);
+    }
+  }, [isControlled, open, afterOpenChange]);
+
+  const finishClose = useCallback(() => {
     if (!isControlled) setUncontrolledOpen(false);
     onOpenChange?.(false);
     afterOpenChange?.(false);
+    setLeaving(false);
   }, [isControlled, onOpenChange, afterOpenChange]);
 
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      if (!isControlled) setUncontrolledOpen(next);
-      onOpenChange?.(next);
-      afterOpenChange?.(next);
-    },
-    [isControlled, onOpenChange, afterOpenChange]
-  );
+  const close = useCallback(() => {
+    if (duration > 0) {
+      setVisible(false);
+      setLeaving(true);
+      leaveTimerRef.current = setTimeout(() => {
+        leaveTimerRef.current = null;
+        finishClose();
+      }, duration);
+    } else {
+      finishClose();
+    }
+  }, [duration, finishClose]);
+
+  useEffect(() => {
+    return () => {
+      if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+    };
+  }, []);
 
   const contextValue = useMemo(
     () => ({ close, closable }),
     [close, closable]
   );
 
-  const shouldRenderContent = open || !destroyOnClose;
+  const overlayOpen = open || leaving;
+  const shouldRenderContent = overlayOpen || !destroyOnClose;
   const container = getContainer?.();
 
   if (!container) return null;
@@ -63,7 +94,9 @@ export function Modal({
   return (
     <ModalContext.Provider value={contextValue}>
       <ModalOverlay
-        open={open}
+        open={overlayOpen}
+        visible={visible}
+        duration={duration}
         mask={mask}
         maskClosable={maskClosable}
         keyboard={keyboard}
