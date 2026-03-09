@@ -43,11 +43,26 @@ export default function ConfirmAsyncExample() {
     });
   };
 
+  const handleDefer = () => {
+    confirm({
+      title: 'Deferred 模式',
+      content: '异步完成后通过 defer.resolve("ok") 关闭并 resolve，无需手动调用 close()。',
+      okText: '提交',
+      cancelText: '取消',
+      onOk: async ({ defer, setLoading }) => {
+        setLoading(true);
+        await new Promise((r) => setTimeout(r, 1200));
+        setLoading(false);
+        defer?.resolve('ok');
+      },
+    });
+  };
+
   return (
     <section className="section">
       <h2>Confirm 异步关闭</h2>
       <p>
-        使用 onOk 的控制器 close / setLoading：接口成功后再 close()，请求期间 setLoading(true) 防止重复点击；接口失败不调用 close，弹窗保持打开。
+        使用 onOk 的控制器 close / setLoading：接口成功后再 close()，请求期间 setLoading(true) 防止重复点击；接口失败不调用 close，弹窗保持打开。Deferred 模式可用 defer.resolve("ok") 替代 close()。
       </p>
       <button type="button" className="primary" onClick={handleDelete}>
         删除（模拟 1.5s 后成功关闭）
@@ -56,6 +71,11 @@ export default function ConfirmAsyncExample() {
       <button type="button" onClick={handleDeleteWithError}>
         模拟失败（不关闭）
       </button>
+      <span style={{ marginLeft: 8 }} />
+      <button type="button" className="primary" onClick={handleDefer}>
+        Deferred 模式（defer.resolve）
+      </button>
     </section>
   );
 }
+ 

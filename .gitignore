@@ -10,3 +10,4 @@ coverage/
 .idea/
 .vscode/
 .cursor/
+__tests__/

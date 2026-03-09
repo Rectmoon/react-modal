@@ -1,0 +1,124 @@
+/* modal.css - 基础样式 + 动画 */
+
+/* 遮罩层 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* 由 JS 动态控制 */
+  opacity: 0;
+  animation: maskFadeIn 0.2s forwards;
+}
+
+/* 弹窗容器 */
+.modal {
+  background-color: #fff;
+  border-radius: 8px;
+  min-width: 320px;
+  max-width: 600px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  transform: scale(0.9);
+  opacity: 0;
+  animation: modalScaleIn 0.2s forwards;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 标题 */
+.modal h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* 内容区 */
+.modal-body {
+  flex: 1;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #333;
+}
+
+/* 底部按钮区域 */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 按钮基础样式 */
+.modal-footer button {
+  min-width: 64px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Cancel 按钮 */
+.modal-footer button:nth-child(1) {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+/* OK 按钮 */
+.modal-footer button:nth-child(2) {
+  background-color: #1890ff;
+  color: white;
+}
+
+/* loading 样式示例 */
+.modal-footer button.loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* 动画效果 */
+@keyframes maskFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes maskFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modalScaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes modalScaleOut {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+/* 关闭时可加类名 modal-leave */
+.modal-leave {
+  animation: modalScaleOut 0.2s forwards;
+}
+.modal-mask-leave {
+  animation: maskFadeOut 0.2s forwards;
+}

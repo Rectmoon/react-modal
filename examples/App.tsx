@@ -4,6 +4,8 @@ import CustomContentExample from './examples/CustomContent';
 import ConfirmAsyncExample from './examples/ConfirmAsync';
 import MaskEscExample from './examples/MaskEsc';
 import MultipleModalsExample from './examples/MultipleModals';
+import ModalOpenExample from './examples/ModalOpen';
+import UseModalExample from './examples/UseModal';
 
 const EXAMPLES = [
   { id: 'basic', label: '基础 Modal 开关', component: BasicModalExample },
@@ -11,6 +13,8 @@ const EXAMPLES = [
   { id: 'confirm-async', label: 'Confirm 异步关闭', component: ConfirmAsyncExample },
   { id: 'mask-esc', label: '遮罩与 ESC 关闭', component: MaskEscExample },
   { id: 'multiple', label: '多弹窗', component: MultipleModalsExample },
+  { id: 'modal-open', label: 'Modal.open() Service API', component: ModalOpenExample },
+  { id: 'use-modal', label: 'useModal()', component: UseModalExample },
 ];
 
 function getExampleId(): string {

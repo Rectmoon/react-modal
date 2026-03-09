@@ -1,29 +1,41 @@
-export { Modal } from './Modal';
-export { ModalHeader } from './ModalHeader';
-export { ModalBody } from './ModalBody';
-export { ModalFooter } from './ModalFooter';
-export { ModalPanel } from './ModalPanel';
-export { ModalOverlay } from './ModalOverlay';
-export { ModalContext } from './context';
-export { useModal } from './useModal';
+import { Modal } from './core/Modal';
+import ModalRenderer from './core/ModalRenderer';
+import ModalProvider from './provider/ModalProvider';
+import { useModal } from './hooks/useModal';
+import { confirm, open as modalOpen, alert as modalAlert } from './core/service';
+import { createDeferred } from './core/createDeferred';
+import {
+  modalManager,
+  open as modalManagerOpen,
+  close as modalManagerClose,
+  subscribe as modalManagerSubscribe,
+  getModals,
+} from './manager/ModalManager';
+
+const ModalWithStatic = Object.assign(Modal, {
+  open: modalOpen,
+  confirm,
+  alert: (options: Parameters<typeof confirm>[0]) => confirm({ ...options, showCancel: false }),
+});
+
+export {
+  ModalProvider,
+  ModalRenderer,
+  Modal,
+  useModal,
+  confirm,
+  modalOpen,
+  modalAlert,
+  createDeferred,
+  modalManagerOpen,
+  modalManagerClose,
+  modalManagerSubscribe,
+  getModals,
+  modalManager,
+};
+export type { ModalOpenOptions, ModalOpenController } from './core/service';
+export type { Deferred } from './core/createDeferred';
+export type { ConfirmOptions, ConfirmResult, ConfirmOkController } from './core/service';
+export type { OpenModalOptions, ModalItem } from './manager/ModalManager';
 export type { ModalProps } from './types';
-export type { ModalContextValue } from './context';
-export type { ModalHeaderProps } from './ModalHeader';
-export type { ModalBodyProps } from './ModalBody';
-export type { ModalFooterProps } from './ModalFooter';
-export type { ModalPanelProps } from './ModalPanel';
-export type { ModalOverlayProps } from './ModalOverlay';
-
-import { Modal } from './Modal';
-import { confirm } from './confirm';
-
-export type { ConfirmOptions, ConfirmOkController, ConfirmResult } from './confirm';
-
-function alert(options: Parameters<typeof confirm>[0]) {
-  return confirm({ ...options, showCancel: false });
-}
-
-const ModalWithConfirm = Object.assign(Modal, { confirm, alert });
-
-export { ModalWithConfirm as default };
-export { confirm };
+export default ModalWithStatic;
