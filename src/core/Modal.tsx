@@ -1,15 +1,25 @@
-import type { ReactNode } from 'react';
-import { useState, useCallback, useId, useMemo, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { modalManager } from '../manager/ModalManager';
-import type { ModalItem } from '../manager/ModalManager';
-import { useScrollLock } from '../manager/useScrollLock';
-import { useFocusTrap } from './FocusTrap';
+import {
+  useState,
+  useCallback,
+  useId,
+  useMemo,
+  useEffect,
+  useRef,
+  ReactNode
+} from "react";
+import { createPortal } from "react-dom";
+import { modalManager } from "../manager/ModalManager";
+import { useScrollLock } from "../manager/useScrollLock";
+import { useFocusTrap } from "./FocusTrap";
+import type { ModalItem } from "../manager/ModalManager";
+import type { ModalProps } from "../types";
 
 // ----- 进入/离开过渡（原 useModalTransition） -----
 
 export const defaultGetContainer = () =>
-  typeof document !== 'undefined' ? document.body : (null as unknown as HTMLElement);
+  typeof document !== "undefined"
+    ? document.body
+    : (null as unknown as HTMLElement);
 
 export interface UseModalTransitionOptions {
   /** 动画时长，≤0 表示无动画 */
@@ -25,7 +35,7 @@ export interface UseModalTransitionOptions {
  */
 export function useModalTransition(
   open: boolean,
-  options: UseModalTransitionOptions = {}
+  options: UseModalTransitionOptions = {},
 ) {
   const { duration = 200, onClosed } = options;
   const [visible, setVisible] = useState(false);
@@ -77,7 +87,7 @@ export function Overlay({
   onClose,
   zIndex = 1000,
   getContainer,
-  className = '',
+  className = "",
   children,
 }: {
   open: boolean;
@@ -92,7 +102,9 @@ export function Overlay({
   className?: string;
   children: ReactNode;
 }) {
-  const container = getContainer?.() ?? (typeof document !== 'undefined' ? document.body : null);
+  const container =
+    getContainer?.() ??
+    (typeof document !== "undefined" ? document.body : null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useScrollLock(open);
@@ -115,18 +127,18 @@ export function Overlay({
       role="presentation"
       onClick={mask ? handleOverlayClick : undefined}
       style={{
-        position: 'fixed',
+        position: "fixed",
         inset: 0,
         zIndex,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
         opacity: visible ? 1 : 0,
         transition: `opacity ${duration}ms ease`,
         ...(mask
-          ? { backgroundColor: 'rgba(0,0,0,0.45)' }
-          : { backgroundColor: 'transparent', pointerEvents: 'none' }),
+          ? { backgroundColor: "rgba(0,0,0,0.45)" }
+          : { backgroundColor: "transparent", pointerEvents: "none" }),
       }}
     >
       <div
@@ -134,12 +146,12 @@ export function Overlay({
         tabIndex={-1}
         style={{
           flex: 1,
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          pointerEvents: mask ? 'auto' : 'none',
-          outline: 'none',
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: mask ? "auto" : "none",
+          outline: "none",
         }}
         onClick={mask ? handleOverlayClick : undefined}
       >
@@ -164,7 +176,7 @@ export function Panel({
   visible = true,
   duration = 200,
   style = {},
-  className = '',
+  className = "",
 }: {
   title?: ReactNode;
   children?: ReactNode;
@@ -189,14 +201,14 @@ export function Panel({
       data-modal-panel
       className={className}
       style={{
-        width: typeof width === 'number' ? `${width}px` : width,
-        ...(centered ? { margin: 'auto' } : {}),
-        transform: visible ? 'scale(1)' : 'scale(0.95)',
+        width: typeof width === "number" ? `${width}px` : width,
+        ...(centered ? { margin: "auto" } : {}),
+        transform: visible ? "scale(1)" : "scale(0.95)",
         opacity: visible ? 1 : 0,
         transition: `transform ${duration}ms ease, opacity ${duration}ms ease`,
-        backgroundColor: 'var(--modal-bg, #fff)',
-        borderRadius: 'var(--modal-radius, 8px)',
-        boxShadow: 'var(--modal-shadow, 0 4px 12px rgba(0,0,0,0.15))',
+        backgroundColor: "var(--modal-bg, #fff)",
+        borderRadius: "var(--modal-radius, 8px)",
+        boxShadow: "var(--modal-shadow, 0 4px 12px rgba(0,0,0,0.15))",
         ...style,
       }}
       onClick={(e) => e.stopPropagation()}
@@ -205,49 +217,174 @@ export function Panel({
         <div id={titleId} className="modal-header" data-modal-header>
           <div data-modal-title>{title}</div>
           {closable && (
-            <button type="button" data-modal-close onClick={close} aria-label="Close">
+            <button
+              type="button"
+              data-modal-close
+              onClick={close}
+              aria-label="Close"
+            >
               ×
             </button>
           )}
         </div>
       )}
       {children != null && (
-        <div id={bodyId} className="modal-body" data-modal-body role="region" aria-label="Modal content">
+        <div
+          id={bodyId}
+          className="modal-body"
+          data-modal-body
+          role="region"
+          aria-label="Modal content"
+        >
           {children}
         </div>
       )}
-      {footer != null && <div className="modal-footer" data-modal-footer>{footer}</div>}
+      {footer != null && (
+        <div className="modal-footer" data-modal-footer>
+          {footer}
+        </div>
+      )}
     </div>
   );
 }
 
-// ----- Modal: one modal from ModalManager (used by ModalProvider) -----
+// ----- 声明式：仅同步到 Manager，UI 由 ModalProvider + 同一 Modal 渲染 -----
+
+function DeclarativeToManager(props: ModalProps) {
+  const {
+    open: controlledOpen,
+    defaultOpen = false,
+    onOpenChange,
+    afterOpenChange,
+  } = props;
+
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const idRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+  const openGenRef = useRef(0);
+  const propsRef = useRef(props);
+  propsRef.current = props;
+
+  const handleClose = useCallback(() => {
+    if (!isControlled) setUncontrolledOpen(false);
+    onOpenChange?.(false);
+    afterOpenChange?.(false);
+  }, [isControlled, onOpenChange, afterOpenChange]);
+
+  // 用 useEffect + queueMicrotask：在 React 提交后再推栈，避免在生命周期内 notify 导致 Provider 不更新；非受控/key 切换时弹窗能稳定出现
+  // openGenRef：Strict Mode 下 effect 会跑两遍、排两个微任务，只有「当前代次」的微任务真正 open，避免出现两个弹窗
+  useEffect(() => {
+    if (open) {
+      mountedRef.current = true;
+      const gen = ++openGenRef.current;
+      queueMicrotask(() => {
+        if (!mountedRef.current || gen !== openGenRef.current) return;
+        const p = propsRef.current;
+        const footerNode =
+          typeof p.footer === "function"
+            ? (opts: { close: () => void }) =>
+                (p.footer as (props: { close: () => void }) => ReactNode)({
+                  close: opts.close,
+                })
+            : p.footer;
+        const { id } = modalManager.open({
+          title: p.title,
+          content: p.children,
+          footer: footerNode,
+          maskClosable: p.maskClosable ?? true,
+          keyboard: p.keyboard ?? true,
+          getContainer: p.getContainer ?? defaultGetContainer,
+          mask: p.mask !== false,
+          width: p.width ?? 520,
+          duration: p.duration ?? 200,
+          onClose: handleClose,
+        });
+        if (mountedRef.current) idRef.current = id;
+        else modalManager.close(id);
+      });
+      return () => {
+        mountedRef.current = false;
+        if (idRef.current) {
+          modalManager.close(idRef.current);
+          idRef.current = null;
+        }
+      };
+    } else if (idRef.current) {
+      modalManager.close(idRef.current);
+      idRef.current = null;
+    }
+  }, [open, handleClose]);
+
+  // 弹窗已打开时，业务侧 title/content/footer 等变化时同步到 Manager，保证动态标题等能更新
+  useEffect(() => {
+    if (!open || !idRef.current) return;
+    const p = propsRef.current;
+    const footerNode =
+      typeof p.footer === "function"
+        ? (opts: { close: () => void }) =>
+            (p.footer as (props: { close: () => void }) => ReactNode)({
+              close: opts.close,
+            })
+        : p.footer;
+    modalManager.update(idRef.current, {
+      title: p.title,
+      content: p.children,
+      footer: footerNode,
+      maskClosable: p.maskClosable ?? true,
+      keyboard: p.keyboard ?? true,
+      getContainer: p.getContainer ?? defaultGetContainer,
+      mask: p.mask !== false,
+      width: p.width ?? 520,
+      duration: p.duration ?? 200,
+    });
+  }, [open, props]);
+
+  return null;
+}
+
+// ----- 唯一 UI 实现：Manager 驱动（ModalProvider 渲染的 item 或直接传 id/content/options） -----
 
 const DEFAULT_DURATION = 200;
 
-export default function Modal(props: ModalItem) {
+export function ModalRenderer(props: ModalItem) {
   const { id, title, content, zIndex, options: opts } = props;
-  const { onOk, onCancel, defer, maskClosable = true, keyboard = true, duration = DEFAULT_DURATION } = opts ?? {};
+  const {
+    onOk,
+    onCancel,
+    defer,
+    maskClosable = true,
+    keyboard = true,
+    duration = DEFAULT_DURATION,
+  } = opts ?? {};
   const titleId = useId();
   const bodyId = useId();
   const [loading, setLoading] = useState(false);
 
   const doClose = useCallback(() => modalManager.close(id), [id]);
-  const { visible, close } = useModalTransition(true, { duration, onClosed: doClose });
+  const { visible, close } = useModalTransition(true, {
+    duration,
+    onClosed: doClose,
+  });
 
   const closeWithOk = useCallback(() => {
-    defer?.resolve('ok');
+    defer?.resolve("ok");
     close();
   }, [close, defer]);
 
   const controller = useMemo(
-    () => ({ close: opts?.type === 'confirm' ? closeWithOk : close, setLoading, defer }),
-    [close, closeWithOk, opts?.type, defer]
+    () => ({
+      close: opts?.type === "confirm" ? closeWithOk : close,
+      setLoading,
+      defer,
+    }),
+    [close, closeWithOk, opts?.type, defer],
   );
 
   const handleOk = useCallback(async () => {
     if (!onOk) {
-      defer?.resolve('ok');
+      defer?.resolve("ok");
       close();
       return;
     }
@@ -260,7 +397,7 @@ export default function Modal(props: ModalItem) {
 
   const handleCancel = useCallback(() => {
     onCancel?.();
-    defer?.resolve('cancel');
+    defer?.resolve("cancel");
     close();
   }, [onCancel, defer, close]);
 
@@ -270,30 +407,35 @@ export default function Modal(props: ModalItem) {
     d.promise.then(close, close);
   }, [defer, close]);
 
-  const showCancel = opts?.type === 'confirm' && opts.showCancel !== false && opts.cancelText != null;
-  const cancelText = opts?.cancelText ?? 'Cancel';
-  const okText = opts?.okText ?? 'OK';
+  const showCancel =
+    opts?.type === "confirm" &&
+    opts.showCancel !== false &&
+    opts.cancelText != null;
+  const cancelText = opts?.cancelText ?? "Cancel";
+  const okText = opts?.okText ?? "OK";
 
   const footerContent =
-    opts?.type === 'confirm'
-      ? (
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            {showCancel && (
-              <button type="button" onClick={handleCancel} disabled={loading}>
-                {cancelText}
-              </button>
-            )}
-            <button type="button" onClick={handleOk} disabled={loading}>
-              {loading ? 'Loading...' : okText}
-            </button>
-          </div>
-        )
-      : typeof opts?.footer === 'function'
-        ? opts.footer({ close, setLoading, defer: opts.defer })
-        : opts?.footer ?? null;
+    opts?.type === "confirm" ? (
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        {showCancel && (
+          <button type="button" onClick={handleCancel} disabled={loading}>
+            {cancelText}
+          </button>
+        )}
+        <button type="button" onClick={handleOk} disabled={loading}>
+          {loading ? "Loading..." : okText}
+        </button>
+      </div>
+    ) : typeof opts?.footer === "function" ? (
+      opts.footer({ close, setLoading, defer: opts.defer })
+    ) : (
+      (opts?.footer ?? null)
+    );
 
   const onClose = maskClosable
-    ? (opts?.type === 'confirm' ? handleCancel : close)
+    ? opts?.type === "confirm"
+      ? handleCancel
+      : close
     : () => {};
 
   const getContainer = opts?.getContainer ?? defaultGetContainer;
@@ -315,7 +457,7 @@ export default function Modal(props: ModalItem) {
         title={title}
         titleId={titleId}
         bodyId={bodyId}
-        close={opts?.type === 'confirm' ? closeWithOk : close}
+        close={opts?.type === "confirm" ? closeWithOk : close}
         closable={false}
         width={opts?.width ?? 520}
         footer={footerContent}
@@ -326,4 +468,11 @@ export default function Modal(props: ModalItem) {
       </Panel>
     </Overlay>
   );
+}
+
+// ----- 导出：仅声明式；Manager 项由 ModalProvider 用 ModalFromManager 渲染 -----
+
+/** 声明式 <Modal open={} />，内部同步到 Manager，UI 由 ModalProvider 渲染 */
+export default function Modal(props: ModalProps) {
+  return <DeclarativeToManager {...props} />;
 }

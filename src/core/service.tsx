@@ -36,9 +36,11 @@ export interface ModalOpenController {
 }
 
 export interface ModalOpenOptions {
-  title?: string;
+  title?: ReactNode;
   content?: ReactNode;
   footer?: ReactNode | ((props: { close: () => void }) => ReactNode);
+  maskClosable?: boolean;
+  keyboard?: boolean;
   onOk?: (ctrl: ModalOpenController) => void | Promise<void>;
   onCancel?: (ctrl?: ModalOpenController) => void;
 }
@@ -245,7 +247,9 @@ export function open(options: ModalOpenOptions): ModalOpenController {
 
   const result = openModal({
     title: options.title,
-    content: options.content ?? (options.title ? <p>{options.title}</p> : null),
+    content: options.content ?? (options.title != null && typeof options.title === 'string' ? <p>{options.title}</p> : null),
+    maskClosable: options.maskClosable,
+    keyboard: options.keyboard,
     footer:
       typeof options.footer === 'function'
         ? options.footer

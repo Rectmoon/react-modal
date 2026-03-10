@@ -1,6 +1,6 @@
 # react-modal
 
-可复用、可扩展的 React 弹窗/对话框组件。支持受控/非受控、确认框（confirm）、**Service API（Modal.open）**、**ModalProvider 栈管理**、**Deferred 模式**、自定义页脚与无障碍属性。
+可复用、可扩展的 React 弹窗/对话框组件。**Modal 仅声明式**（`<Modal open={} />`）；`Modal.open` / `confirm` / `alert` 与声明式共用 Manager 栈，由 **ModalProvider** 统一渲染。支持受控/非受控、**动态 title/content**（打开后随 props 更新）、**Deferred 模式**、自定义页脚与无障碍。
 
 ## 安装
 
@@ -14,7 +14,7 @@ npm install react-modal
 
 ### 使用 ModalProvider（推荐）
 
-使用 `Modal.confirm` / `Modal.alert` / `Modal.open` 时，需在应用根节点挂载 `ModalProvider`：
+使用 `Modal.confirm` / `Modal.alert` / `Modal.open` 或声明式 `<Modal>` 时，建议在根节点挂载 `ModalProvider`：
 
 ```tsx
 import { createRoot } from 'react-dom/client';
@@ -22,14 +22,58 @@ import { ModalProvider } from 'react-modal';
 import App from './App';
 
 createRoot(document.getElementById('root')!).render(
-  <>
-    <ModalProvider />
+  <ModalProvider>
     <App />
+  </ModalProvider>
+);
+```
+
+### 声明式：<Modal open={} />（受控）
+
+```tsx
+import { useState } from 'react';
+import { Modal } from 'react-modal';
+
+function App() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>打开</button>
+      <Modal
+        open={open}
+        onOpenChange={setOpen}
+        title="标题"
+        footer={({ close }) => <button onClick={close}>关闭</button>}
+      >
+        内容区域
+      </Modal>
+    </>
+  );
+}
+```
+
+弹窗打开后，若父组件更新 `title`、`children`、`footer` 等 props，会同步到 Manager 并刷新 UI，无需关闭再打开。若在弹窗内通过按钮更新标题等，建议将按钮放在弹窗内容（`children`）内，避免被遮罩遮挡无法点击。
+
+### 声明式非受控：defaultOpen
+
+不传 `open`，只传 `defaultOpen`，由组件内部维护开关；适合「点击后挂载并打开」的写法。开发环境下即使用 React Strict Mode 也只会打开一个弹窗。
+
+```tsx
+const [mounted, setMounted] = useState(false);
+return (
+  <>
+    <button onClick={() => setMounted(true)}>打开</button>
+    {mounted && (
+      <Modal defaultOpen={true} onOpenChange={(next) => !next && setMounted(false)} title="非受控" footer={({ close }) => <button onClick={close}>关闭</button>}>
+        内容
+      </Modal>
+    )}
   </>
 );
 ```
 
-### 基础 Modal
+### API 式：useModal().open()
 
 ```tsx
 import { useModal } from 'react-modal';
@@ -139,7 +183,7 @@ await Modal.alert({
 
 ### Modal.open(options)
 
-返回 `ModalOpenController`: `{ close, setLoading, defer }`，可调用 `close()` 关闭弹窗；`defer` 用于与 Manager 内部协同。
+返回 `ModalOpenController`: `{ close, setLoading, defer }`，可调用 `close()` 关闭弹窗。声明式 `<Modal open={} />` 会同步到 Manager，由 ModalProvider 与 `Modal.open` / `confirm` 共用同一套 UI 与 zIndex 栈。
 
 ### confirm(options)
 
@@ -155,12 +199,13 @@ await Modal.alert({
 | `showCancel` | `boolean` | 为 `false` 时仅显示确定（类似 alert） |
 | `maskClosable` / `keyboard` | `boolean` | 同 Modal |
 
-### 子组件与 Hooks
+### 组件与 Hooks
 
-- `Modal`：由 ModalProvider 渲染的弹窗 UI，内部包含 Overlay + Panel；通过 `Modal.open` / `useModal().open()` / `confirm` 等打开。
-- `useModal()`：返回 `{ open, confirm, alert }`，用于在组件内通过 API 打开弹窗。
-- `ModalProvider`：挂载后，`Modal.confirm` / `Modal.alert` / `Modal.open` 由统一栈渲染，支持多弹窗与 zIndex 管理。
-- `createDeferred`：创建 `{ promise, resolve, reject }`，用于 Deferred 模式。
+- **Modal**：仅声明式，接收 `open` / `defaultOpen` / `onOpenChange` / `children` 等（见上表）。内部同步到 Manager，实际 UI 由 ModalProvider 渲染；打开后 `title`/`children`/`footer` 等变化会通过 `modalManager.update` 同步到 UI。
+- **ModalFromManager**：内部用，供 ModalProvider 渲染栈中每条 Manager 项（不对外单独使用）。
+- **useModal()**：返回 `{ open, confirm, alert }`，在组件内通过 API 打开弹窗。
+- **ModalProvider**：挂载后订阅 Manager，将栈内弹窗用 `ModalFromManager` 渲染到 body，支持多弹窗与 zIndex。
+- **createDeferred**：创建 `{ promise, resolve, reject }`，用于 Deferred 模式。
 
 ## 自定义页脚
 
@@ -181,21 +226,23 @@ open({
 ## 导出说明
 
 - **默认导出**：`Modal` 组件 + 静态方法 `Modal.open`、`Modal.confirm`、`Modal.alert`。推荐：`import Modal from 'react-modal'`。
-- **命名导出**：`ModalProvider`、`Modal`、`useModal`、`confirm`、`modalOpen`、`modalAlert`、`createDeferred`、`modalManager` 等。
+- **命名导出**：`ModalProvider`、`Modal`、`useModal`、`confirm`、`modalOpen`、`modalAlert`、`createDeferred`、`modalManager`、`update`（Manager 的 `update(id, options)` 用于更新已打开弹窗的 title/content 等）等。
 
 ## 项目结构
 
 ```
 src/
-├── core/           # createDeferred、Modal（含 Overlay+Panel+useModalTransition）、service、FocusTrap
+├── core/           # Modal（仅声明式）、ModalFromManager（供 Provider）、Overlay+Panel+useModalTransition、service、FocusTrap、createDeferred
 ├── manager/        # ModalManager、ZIndexManager、ScrollLock、useScrollLock
-├── provider/       # ModalProvider
+├── provider/       # ModalProvider（用 ModalFromManager 渲染栈）
 ├── hooks/          # useModal
-├── styles/         # modal.css
 └── index.ts
-test/               # Vitest 全局 setup（test/setup.ts）
-__tests__/          # 单元测试
+__tests__/          # 单元测试（Manager 打开/关闭/update、声明式受控/非受控/动态标题、confirm、Modal.open）
 ```
+
+## 示例
+
+`npm run examples` 启动 Vite 示例页，包含：声明式受控、非受控、动态标题/内容（按钮在弹窗内可点击）、自定义内容、`useModal().open()`、`Modal.open` / `Modal.alert`、`confirm` 异步、多弹窗、遮罩/ESC 等。
 
 ## 开发与脚本
 

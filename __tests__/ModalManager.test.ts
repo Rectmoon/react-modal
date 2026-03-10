@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { open, close, subscribe, getModals } from '@/manager/ModalManager';
+import { open, close, update, subscribe, getModals } from '@/manager/ModalManager';
 import { zIndexManager } from '@/manager/ZIndexManager';
 
 describe('ModalManager', () => {
@@ -42,5 +42,15 @@ describe('ModalManager', () => {
     expect(getModals()[1].zIndex).toBe(1010);
     close(a.id);
     close(b.id);
+  });
+
+  it('update(id, options) updates existing modal title/content', () => {
+    const { id } = open({ title: 'Old', content: 'Content A' });
+    expect(getModals()[0].title).toBe('Old');
+    expect(getModals()[0].content).toBe('Content A');
+    update(id, { title: 'New Title', content: 'Content B' });
+    expect(getModals()[0].title).toBe('New Title');
+    expect(getModals()[0].content).toBe('Content B');
+    close(id);
   });
 });

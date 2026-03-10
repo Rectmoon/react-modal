@@ -93,6 +93,22 @@ class ModalManager {
     this.notify();
   }
 
+  /** 更新已存在的弹窗项（如声明式 Modal 的 title/content 等动态变化时同步到 UI） */
+  update(id: string, options: Partial<OpenModalOptions>): void {
+    const item = this.modals.find((m) => m.id === id);
+    if (!item) return;
+    if (options.title !== undefined) item.title = options.title;
+    if (options.content !== undefined) item.content = options.content;
+    if (options.footer !== undefined) item.footer = options.footer;
+    if (options.maskClosable !== undefined) item.options.maskClosable = options.maskClosable;
+    if (options.keyboard !== undefined) item.options.keyboard = options.keyboard;
+    if (options.getContainer !== undefined) item.options.getContainer = options.getContainer;
+    if (options.mask !== undefined) item.options.mask = options.mask;
+    if (options.width !== undefined) item.options.width = options.width;
+    if (options.duration !== undefined) item.options.duration = options.duration;
+    this.notify();
+  }
+
   /** For tests: clear all modals and notify. */
   clear(): void {
     this.modals.length = 0;
@@ -104,6 +120,7 @@ export const modalManager = new ModalManager();
 
 export const open = (options: OpenModalOptions) => modalManager.open(options);
 export const close = (id: string) => modalManager.close(id);
+export const update = (id: string, options: Partial<OpenModalOptions>) => modalManager.update(id, options);
 export const subscribe = (listener: Listener) => modalManager.subscribe(listener);
 export const getModals = (): readonly ModalItem[] => modalManager.modals;
 export const _testClearModals = (): void => modalManager.clear();
