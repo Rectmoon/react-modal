@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { modalManager } from '../manager/ModalManager';
-import ModalRenderer from '../core/ModalRenderer';
+import Modal from '../core/Modal';
 
 export interface ModalProviderProps {
   children?: ReactNode;
@@ -24,7 +24,7 @@ function ModalProvider({ children }: ModalProviderProps) {
     <>
       {children}
       {createPortal(
-        modalManager.modals.map((m) => <ModalRenderer key={m.id} {...m} />),
+        modalManager.modals.map((m) => <Modal key={m.id} {...m} />),
         document.body
       )}
     </>

@@ -2,23 +2,30 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, act, fireEvent, render } from '@testing-library/react';
-import { Modal } from '../src/core/Modal';
+import { modalManager, getModals, _testClearModals } from '../src/manager/ModalManager';
+import { ModalProvider } from '../src/provider/ModalProvider';
 
-describe('Modal', () => {
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  return <ModalProvider>{children}</ModalProvider>;
+}
+
+describe('Modal (manager-driven)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    _testClearModals();
+    render(<TestWrapper><div /></TestWrapper>);
   });
 
   afterEach(() => {
+    _testClearModals();
     vi.useRealTimers();
   });
 
-  it('renders when open and shows title and children', async () => {
-    render(
-      <Modal open={true} title="Test Title" onOpenChange={() => {}}>
-        <p>Modal body content</p>
-      </Modal>
-    );
+  it('renders when opened via manager and shows title and content', async () => {
+    modalManager.open({
+      title: 'Test Title',
+      content: <p>Modal body content</p>,
+    });
     await act(async () => {
       vi.runAllTimersAsync();
     });
@@ -26,36 +33,21 @@ describe('Modal', () => {
     expect(screen.getByText('Modal body content')).toBeInTheDocument();
   });
 
-  it('does not render when open is false', () => {
-    render(
-      <Modal open={false} title="Hidden" onOpenChange={() => {}}>
-        <p>Hidden content</p>
-      </Modal>
-    );
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
-
-  it('calls onOpenChange(false) when user closes via overlay or close', async () => {
-    const onOpenChange = vi.fn();
-    render(
-      <Modal open={true} title="Close me" onOpenChange={onOpenChange} maskClosable={true}>
-        <p>Content</p>
-      </Modal>
-    );
+  it('closes when user triggers close', async () => {
+    const id = modalManager.open({
+      title: 'Close me',
+      content: <p>Content</p>,
+      maskClosable: true,
+    });
     await act(async () => {
       vi.runAllTimersAsync();
     });
-    const dialog = screen.getByRole('dialog');
-    const closeBtn = dialog.querySelector('[data-modal-close]') ?? dialog.querySelector('[aria-label="Close"]');
-    if (closeBtn) {
-      fireEvent.click(closeBtn as HTMLElement);
-    } else {
-      const mask = document.querySelector('.modal-mask, [class*="mask"]') ?? document.body;
-      fireEvent.click(mask);
-    }
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    const overlay = document.querySelector('[data-modal-overlay]');
+    fireEvent.click(overlay!);
     act(() => {
       vi.advanceTimersByTime(250);
     });
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(getModals().find((m) => m.id === id)).toBeUndefined();
   });
 });

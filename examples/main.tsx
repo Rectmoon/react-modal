@@ -6,9 +6,8 @@ import './styles.css';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <>
-      <ModalProvider />
+    <ModalProvider>
       <App />
-    </>
+    </ModalProvider>
   </React.StrictMode>
 );

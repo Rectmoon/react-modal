@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useId } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createDeferred } from './createDeferred';
 import type { Deferred } from './createDeferred';
 import { open as openModal } from '../manager/ModalManager';
-import { Modal } from './Modal';
+import { Overlay, Panel, useModalTransition } from './Modal';
 
 // ----- Types (confirm + open/alert) -----
 
@@ -49,25 +49,34 @@ function ConfirmImplLegacy({
   options,
   resolveRef,
   defer,
+  getContainer,
 }: {
   options: ConfirmOptions;
   resolveRef: { current: (value: ConfirmResult) => void };
   defer: Deferred<ConfirmResult>;
+  getContainer?: () => HTMLElement;
 }) {
-  const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const closeReasonRef = { current: 'cancel' as ConfirmResult };
+  const titleId = useId();
+  const bodyId = useId();
 
-  const close = useCallback(() => {
+  const onClosed = useCallback(() => {
+    resolveRef.current(closeReasonRef.current);
+  }, [resolveRef]);
+
+  const { visible, close } = useModalTransition(true, { duration: 200, onClosed });
+
+  const closeWithOk = useCallback(() => {
     closeReasonRef.current = 'ok';
-    setOpen(false);
-  }, []);
+    close();
+  }, [close]);
 
-  const controller: ConfirmOkController = { close, setLoading, defer };
+  const controller: ConfirmOkController = { close: closeWithOk, setLoading, defer };
 
   const handleOk = useCallback(async () => {
     if (!options.onOk) {
-      close();
+      closeWithOk();
       return;
     }
     try {
@@ -75,38 +84,26 @@ function ConfirmImplLegacy({
     } catch {
       // no-op
     }
-  }, [options, close]);
+  }, [options, closeWithOk]);
 
   const handleCancel = useCallback(() => {
     options.onCancel?.();
     closeReasonRef.current = 'cancel';
-    setOpen(false);
-  }, [options]);
-
-  const handleOverlayClose = useCallback(() => {
-    closeReasonRef.current = 'cancel';
-    setOpen(false);
-  }, []);
+    close();
+  }, [options, close]);
 
   useEffect(() => {
     defer.promise.then(
       (value) => {
         closeReasonRef.current = value;
-        setOpen(false);
+        close();
       },
       () => {
         closeReasonRef.current = 'cancel';
-        setOpen(false);
+        close();
       }
     );
-  }, [defer]);
-
-  const afterOpenChange = useCallback(
-    (next: boolean) => {
-      if (!next) resolveRef.current(closeReasonRef.current);
-    },
-    [resolveRef]
-  );
+  }, [defer, close]);
 
   const showCancel = options.showCancel !== false && options.cancelText !== null;
   const cancelText = options.cancelText ?? 'Cancel';
@@ -124,20 +121,32 @@ function ConfirmImplLegacy({
     </div>
   );
 
+  const onOverlayClose = options.maskClosable !== false ? handleCancel : () => {};
+
   return (
-    <Modal
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) handleOverlayClose();
-      }}
-      afterOpenChange={afterOpenChange}
-      title={options.title}
+    <Overlay
+      open
+      visible={visible}
+      duration={200}
+      mask
       maskClosable={options.maskClosable ?? true}
       keyboard={options.keyboard ?? true}
-      footer={footer}
+      onClose={onOverlayClose}
+      getContainer={getContainer}
     >
-      {options.content}
-    </Modal>
+      <Panel
+        title={options.title}
+        titleId={titleId}
+        bodyId={bodyId}
+        close={closeWithOk}
+        closable={false}
+        footer={footer}
+        visible={visible}
+        duration={200}
+      >
+        {options.content}
+      </Panel>
+    </Overlay>
   );
 }
 
@@ -209,7 +218,12 @@ export function confirm(options: ConfirmOptions): Promise<ConfirmResult> {
     };
     const root = createRoot(div);
     root.render(
-      <ConfirmImplLegacy options={options} resolveRef={resolveRef} defer={defer} />
+      <ConfirmImplLegacy
+        options={options}
+        resolveRef={resolveRef}
+        defer={defer}
+        getContainer={() => div}
+      />
     );
     return defer.promise;
   }

@@ -1,5 +1,4 @@
-import { Modal } from './core/Modal';
-import ModalRenderer from './core/ModalRenderer';
+import Modal from './core/Modal';
 import ModalProvider from './provider/ModalProvider';
 import { useModal } from './hooks/useModal';
 import { confirm, open as modalOpen, alert as modalAlert } from './core/service';
@@ -20,7 +19,6 @@ const ModalWithStatic = Object.assign(Modal, {
 
 export {
   ModalProvider,
-  ModalRenderer,
   Modal,
   useModal,
   confirm,

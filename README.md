@@ -32,18 +32,23 @@ createRoot(document.getElementById('root')!).render(
 ### 基础 Modal
 
 ```tsx
-import { Modal } from 'react-modal';
+import { useModal } from 'react-modal';
 
 function App() {
-  const [open, setOpen] = useState(false);
+  const { open } = useModal();
 
   return (
-    <>
-      <button onClick={() => setOpen(true)}>打开</button>
-      <Modal open={open} onOpenChange={setOpen} title="标题">
-        内容区域
-      </Modal>
-    </>
+    <button
+      onClick={() =>
+        open({
+          title: '标题',
+          content: '内容区域',
+          footer: ({ close }) => <button onClick={close}>关闭</button>,
+        })
+      }
+    >
+      打开
+    </button>
   );
 }
 ```
@@ -152,7 +157,7 @@ await Modal.alert({
 
 ### 子组件与 Hooks
 
-- `ModalRenderer`：统一弹窗 UI（声明式 `<Modal open={} />` 与 Manager 驱动均由它渲染），内部包含 Overlay + Panel。
+- `Modal`：由 ModalProvider 渲染的弹窗 UI，内部包含 Overlay + Panel；通过 `Modal.open` / `useModal().open()` / `confirm` 等打开。
 - `useModal()`：返回 `{ open, confirm, alert }`，用于在组件内通过 API 打开弹窗。
 - `ModalProvider`：挂载后，`Modal.confirm` / `Modal.alert` / `Modal.open` 由统一栈渲染，支持多弹窗与 zIndex 管理。
 - `createDeferred`：创建 `{ promise, resolve, reject }`，用于 Deferred 模式。
@@ -160,31 +165,29 @@ await Modal.alert({
 ## 自定义页脚
 
 ```tsx
-<Modal
-  open={open}
-  onOpenChange={setOpen}
-  title="自定义页脚"
-  footer={({ close }) => (
+const { open } = useModal();
+open({
+  title: '自定义页脚',
+  content: '内容',
+  footer: ({ close }) => (
     <div>
       <button onClick={close}>取消</button>
       <button onClick={() => { doSubmit(); close(); }}>提交</button>
     </div>
-  )}
->
-  内容
-</Modal>
+  ),
+});
 ```
 
 ## 导出说明
 
 - **默认导出**：`Modal` 组件 + 静态方法 `Modal.open`、`Modal.confirm`、`Modal.alert`。推荐：`import Modal from 'react-modal'`。
-- **命名导出**：`ModalProvider`、`ModalRenderer`、`Modal`、`useModal`、`confirm`、`modalOpen`、`modalAlert`、`createDeferred`、`modalManager` 等。
+- **命名导出**：`ModalProvider`、`Modal`、`useModal`、`confirm`、`modalOpen`、`modalAlert`、`createDeferred`、`modalManager` 等。
 
 ## 项目结构
 
 ```
 src/
-├── core/           # createDeferred、Modal、ModalRenderer（含 Overlay+Panel）、service.tsx（confirm/alert/open）、FocusTrap
+├── core/           # createDeferred、Modal（含 Overlay+Panel+useModalTransition）、service、FocusTrap
 ├── manager/        # ModalManager、ZIndexManager、ScrollLock、useScrollLock
 ├── provider/       # ModalProvider
 ├── hooks/          # useModal

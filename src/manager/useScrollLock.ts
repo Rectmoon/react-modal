@@ -3,7 +3,7 @@ import { lock, unlock } from './ScrollLock';
 
 /**
  * Hook that locks body scroll when true, unlocks when false.
- * Uses the same lock/unlock count as ScrollLock module (shared with ModalManager/ModalRenderer).
+ * Uses the same lock/unlock count as ScrollLock module (shared with ModalManager/Modal).
  */
 export function useScrollLock(locked: boolean): void {
   useEffect(() => {
